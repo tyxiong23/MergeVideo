@@ -24,7 +24,7 @@ import java.util.List;
 public class MergeActivity extends AppCompatActivity {
     private VideoView videoView;
     private MediaController mediaController;
-    private Button buttonExit;
+    private Button buttonExit, buttonSave;
     private String videoPath;
 
     @Override
@@ -35,7 +35,14 @@ public class MergeActivity extends AppCompatActivity {
         videoView = findViewById(R.id.merge_videoView);
         mediaController = new MediaController(this);
         buttonExit = findViewById(R.id.exit_button);
+        buttonSave = findViewById(R.id.save_button);
         buttonExit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finishAffinity();
+            }
+        });
+        buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 List<String> final_list = new ArrayList<>();
