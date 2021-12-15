@@ -86,20 +86,24 @@ public class EditActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
                 List<String> selectedVideos = SelectVideos.getList();
-                String finalPath = Constants.getRunningDir() + "/final.mp4";
-                Log.d("edit merge path", finalPath);
-                try{
-                    MergeVideo.mergeVideos(selectedVideos, finalPath);
-                    Intent mergeIntent = new Intent(EditActivity.this, MergeActivity.class);
-                    mergeIntent.putExtra("video_path", finalPath);
-                    startActivity(mergeIntent);
-                } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                if (selectedVideos.size() == 0) {
+                    Toast.makeText(getApplicationContext(), "没有选择的视频", Toast.LENGTH_SHORT).show();
+                    return;
+                } else {
+                    String finalPath = Constants.getRunningDir() + "/final.mp4";
+                    Log.d("edit merge path", finalPath);
+                    try{
+                        MergeVideo.mergeVideos(selectedVideos, finalPath);
+                        Intent mergeIntent = new Intent(EditActivity.this, MergeActivity.class);
+                        mergeIntent.putExtra("video_path", finalPath);
+                        startActivity(mergeIntent);
+                    } catch (Exception e) {
+                        Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_SHORT).show();
+                    }
                 }
-
             }
         });
     }

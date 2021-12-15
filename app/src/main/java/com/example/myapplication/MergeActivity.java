@@ -15,6 +15,7 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.example.myapplication.utils.tools.Constants;
+import com.example.myapplication.utils.tools.CopyFile;
 import com.example.myapplication.utils.tools.MergeVideo;
 
 import java.io.File;
@@ -45,28 +46,26 @@ public class MergeActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                List<String> final_list = new ArrayList<>();
-                final_list.add(videoPath);
                 String save_dir = Constants.getSaveDir();
                 File saveFileDir = new File(save_dir);
                 if (!saveFileDir.exists())
                     saveFileDir.mkdir();
                 String save_path =  save_dir + "/" + Constants.getId() + "_final.mp4";
-                try{
-                    MergeVideo.mergeVideos(final_list, save_path);
-                    Toast.makeText(getApplicationContext(), "保存成功", Toast.LENGTH_SHORT).show();
-                } catch (Exception e){
-                    Toast.makeText(getApplicationContext(), "[Error saving video] " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
+                boolean result = CopyFile.fileChannelCopy(videoPath, save_path);
+                if (result)
+                    Toast.makeText(getApplicationContext(), "[保存成功] " + save_path, Toast.LENGTH_SHORT).show();
+                else
+                    Toast.makeText(getApplicationContext(), "[保存失败] " + save_path, Toast.LENGTH_SHORT).show();
 
             }
         });
 
         Bundle bundle = getIntent().getExtras();
-        videoPath = bundle.getString("video_path");
+        videoPath = bundle.getString("video_path", "");
         File file = new File(videoPath);
         Log.d("file", String.valueOf(file.exists()));
         if (file.exists()) {
+            buttonSave.setEnabled(true);
             Log.d("absolute file path", file.getAbsolutePath());
             // 设置播放视频源的路径
             videoView.setVideoPath(file.getAbsolutePath());
@@ -132,6 +131,7 @@ public class MergeActivity extends AppCompatActivity {
 //            }
         } else {
             Toast.makeText(this,"视频路径解析失败", Toast.LENGTH_SHORT);
+            buttonSave.setEnabled(false);
         }
     }
 }

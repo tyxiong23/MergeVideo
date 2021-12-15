@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
 
                     .selectionMode(PictureConfig.MULTIPLE)// 多选 or 单选
                     .isPreviewVideo(true)// 是否可预览视频
-                    .isCompress(false)// 是否压缩
+                    .isCompress(true)// 是否压缩
                     .synOrAsy(false)//同步true或异步false 压缩 默认同步
                     .minimumCompressSize(100)// 小于多少kb的图片不压缩
                     //.forResult(PictureConfig.CHOOSE_REQUEST);//结果回调onActivityResult code
