@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.myapplication.databinding.ActivityEditBinding;
@@ -32,6 +33,7 @@ public class EditActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private EditItemAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
+    private TextView contentText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,28 +44,21 @@ public class EditActivity extends AppCompatActivity {
 
         Bundle bundle = this.getIntent().getExtras();
         String content = bundle.getString("sentences");
-        String[] sentences = content.split("\n");
+        contentText = findViewById(R.id.edit_text);
+        contentText.setText(content);
         String[] edit_files = bundle.getStringArray("cut_files");
+        Log.d("num_videos", String.valueOf(edit_files.length));
+        Log.d("edit videos!!", edit_files.toString());
         List<EditItem> list = new ArrayList<>();
-        for (int j = 0; j < sentences.length; ++j) {
-            String sent =  sentences[j];
-            if (!sent.equals("")) {
-                Log.d("test", "[" + sent + "]");
-                String[] choices = new String[3];
-                for (int i = 0; i < 3; ++i) {
-                    if (edit_files.length > 0) {
-                        final double d = Math.random();
-                        final int rank = (int)(d*1000) % edit_files.length;
-                        choices[i] = edit_files[rank];
-                        Log.d("choice " + i + "/" + j + " " + rank, edit_files[rank]);
-                    } else
-                        choices[i] = "";
+        for (int j = 0; j < edit_files.length; ++j) {
+            String label =  "label";
 
-                }
-                list.add(new EditItem(sent, choices));
-            }
+//            Log.d("label", "[" + label + "]");
+            list.add(new EditItem(label, edit_files[j]));
+
+
         }
-
+//        list.clear();
         recyclerView = findViewById(R.id.edit_recycler);
         layoutManager = new LinearLayoutManager(this);
         adapter = new EditItemAdapter(list);

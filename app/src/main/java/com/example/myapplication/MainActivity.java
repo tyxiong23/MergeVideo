@@ -27,6 +27,7 @@ import android.widget.Toast;
 import java.lang.String;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
+import com.example.myapplication.jni.FFmpegCmd;
 import com.example.myapplication.utils.FullyGridLayoutManager;
 import com.example.myapplication.utils.GlideEngine;
 import com.example.myapplication.utils.adapter.GridImageAdapter;
@@ -64,7 +65,12 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> launcherResult;
     private int selectMax = 10;
     private List<VideoInfo> videoInfos;
-    private int interval = 3;
+    private int interval = 5;
+
+    static {
+        System.loadLibrary("myapplication");
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +86,10 @@ public class MainActivity extends AppCompatActivity {
         videoRecycle = binding.recycler;
         next_button.setClickable(true);
         videoInfos = new ArrayList<>();
+        Toast.makeText(this, FFmpegCmd.test(), Toast.LENGTH_SHORT).show();
+        ffmpegTest();
+
+
 
         next_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -267,4 +277,32 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    public native String stringFromJNI();
+
+    private void ffmpegTest() {
+        new Thread(){
+            @Override
+            public void run() {
+                long startTime = System.currentTimeMillis();
+                String input = "storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test.mp4";
+                String output = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test1.mp4";
+                String output_pic = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test2.jpeg";
+                java.io.File myFilePath = new java.io.File(output);
+                myFilePath.delete(); // 删除空文件夹
+                //剪切视频从00：20-00：28的片段
+                String cmd = "ffmpeg -d -ss 00:00:02 -t 00:00:05 -i %s -vcodec copy -acodec copy %s";
+                cmd = String.format(cmd,input,output);
+//                cmd = "ffmpeg -i %s -r 1 -f image2 %s";
+//                cmd = String.format(cmd,input,output_pic);
+                cmd = "ffmpeg -i %s -s vga %s";
+                cmd = String.format(cmd,input,output);
+
+                FFmpegCmd.run(cmd.split(" "));
+                Log.d("FFmpegTest", "run: 耗时："+(System.currentTimeMillis()-startTime));
+            }
+        }.start();
+
+
+    }
 }
