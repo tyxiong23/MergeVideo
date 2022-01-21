@@ -9,12 +9,12 @@ import java.util.List;
 
 public class SelectVideos {
     private static List<Record> selectedVideos = new ArrayList<>();
-    public static List<String> getList() {
-        List<String> result = new ArrayList<>();
+    public static List<Integer> getIndexList() {
+        List<Integer> result = new ArrayList<>();
         Collections.sort(selectedVideos);
         for (Record rec: selectedVideos)
-            result.add(rec.path);
-        return  result;
+            result.add(rec.index);
+        return result;
     }
     public static void insert(String str, int index) {
         Record rec = new Record(str, index);

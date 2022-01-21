@@ -57,7 +57,7 @@ public class EditItemAdapter extends RecyclerView.Adapter<EditItemAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int i) {
-        int position = holder.getBindingAdapterPosition();
+        int position = holder.getAdapterPosition();
         EditItem editItem = list.get(position);
         String content = editItem.getSentence();
         holder.textView.setText(content);

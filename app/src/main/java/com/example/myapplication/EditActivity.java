@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.example.myapplication.jni.FFmpegCmd;
+import com.example.myapplication.jni.FinetuneUtils;
 import com.example.myapplication.utils.EditItem;
 import com.example.myapplication.utils.EditItemAdapter;
 import com.example.myapplication.utils.tools.Constants;
@@ -21,6 +22,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,11 +37,18 @@ import java.util.List;
 
 public class EditActivity extends AppCompatActivity {
 
+    private String[] edit_files;
     private ActivityEditBinding binding;
     private RecyclerView recyclerView;
     private EditItemAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
     private TextView contentText;
+    private FloatingActionButton next_fab;
+    private TextView progress_text;
+    private ProgressBar progressBar;
+    private LinearLayout progress_layout;
+    private List<String> fineVideos = new ArrayList<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,12 +61,17 @@ public class EditActivity extends AppCompatActivity {
         String content = bundle.getString("sentences");
         contentText = findViewById(R.id.edit_text);
         contentText.setText(content);
-        String[] edit_files = bundle.getStringArray("cut_files");
+        progress_layout = findViewById(R.id.progress_layout_finetune);
+        progressBar = findViewById(R.id.progress_bar_finetune);
+        progress_text = findViewById(R.id.progress_text_finetune);
+
+        edit_files = bundle.getStringArray("cut_files");
         Log.d("num_videos", String.valueOf(edit_files.length));
 //        Log.d("edit videos!!", edit_files.toString());
         List<EditItem> list = new ArrayList<>();
         for (int j = 0; j < edit_files.length; ++j) {
-            String label =  "label";
+            String[] ss =  edit_files[j].split("/");
+            String label = ss[ss.length-1];
 
 //            Log.d("label", "[" + label + "]");
             list.add(new EditItem(label, edit_files[j]));
@@ -82,14 +97,18 @@ public class EditActivity extends AppCompatActivity {
         CollapsingToolbarLayout toolBarLayout = binding.toolbarLayout;
         toolBarLayout.setTitle(getTitle());
 
-        FloatingActionButton fab = binding.fab;
-        fab.setOnClickListener(new View.OnClickListener() {
+        next_fab = binding.fab;
+        next_fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 //                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                        .setAction("Action", null).show();
-                List<String> selectedVideos = SelectVideos.getList();
-                if (selectedVideos.size() == 0) {
+                List<Integer> selectedIndexes = SelectVideos.getIndexList();
+                List<String> selectedVideos = new ArrayList<>();
+                for (int i: selectedIndexes){
+                    selectedVideos.add(fineVideos.get(i));
+                }
+                if (selectedIndexes.size() == 0) {
                     Toast.makeText(getApplicationContext(), "没有选择的视频", Toast.LENGTH_SHORT).show();
                     return;
                 } else {
@@ -122,5 +141,40 @@ public class EditActivity extends AppCompatActivity {
                 }
             }
         });
+
+        Finetune(edit_files);
+
+    }
+
+    private void Finetune(String[] videos){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        next_fab.setClickable(false);
+                        progress_layout.setVisibility(View.VISIBLE);
+                    }
+                });
+
+                String fineDir = Constants.getRunningDir() + "/finetune";
+
+                for (int i = 0; i < videos.length; ++i){
+                    String resultPath = FinetuneUtils.fineTune(videos[i], fineDir, i);
+                    fineVideos.add(resultPath);
+                }
+
+
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        next_fab.setClickable(true);
+                        progress_layout.setVisibility(View.INVISIBLE);
+                    }
+                });
+            }
+        }).start();
     }
 }

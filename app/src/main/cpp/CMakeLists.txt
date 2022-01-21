@@ -12,6 +12,9 @@ project("myapplication")
 include_directories(
         ffmpeg/include
 )
+include_directories(
+       opencv/include
+)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -27,6 +30,12 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         native-lib.cpp)
 
+add_library(
+        finetune-lib
+        SHARED
+        finetune.cpp
+)
+
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
 # default, you only need to specify the name of the public NDK library
@@ -41,6 +50,18 @@ find_library( # Sets the name of the path variable.
         log)
 
 set(prebuild ${CMAKE_SOURCE_DIR}/ffmpeg/prebuild/arm64-v8a)
+set(opencv_lib ${CMAKE_SOURCE_DIR}/opencv/lib)
+
+add_library(libopencv_java3
+        SHARED
+        IMPORTED
+)
+
+SET_TARGET_PROPERTIES(
+        libopencv_java3
+        PROPERTIES IMPORTED_LOCATION
+        ${opencv_lib}/libopencv_java3.so
+)
 
 add_library(libavcodec
         SHARED
@@ -148,6 +169,7 @@ set(third-party-libs
         libpostproc
         libswresample
         libswscale
+        libopencv_java3
         )
 
 
@@ -155,12 +177,18 @@ set(third-party-libs
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
+target_link_libraries(
+        finetune-lib
+        libopencv_java3
+)
+
 
 target_link_libraries( # Specifies the target library.
         myapplication
-
+        finetune-lib
         ${third-party-libs}
 
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
+

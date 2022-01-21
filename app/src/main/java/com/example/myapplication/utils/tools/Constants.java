@@ -18,5 +18,8 @@ public class Constants {
         return rand;
     }
     public static String getSaveDir() { return CACHE_DIR.replace("Movies", "Save"); }
+    public static int W = 800, H = 800;
+    public static float minRoughInterval = 4.5f;
+    public static float defaultFinetuneInterval = 3.0f;
 
 }
