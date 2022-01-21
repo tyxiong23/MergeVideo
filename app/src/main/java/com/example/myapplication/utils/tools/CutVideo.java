@@ -33,7 +33,7 @@ public class CutVideo {
         List<String> results = new ArrayList<>();
         File outputDir = new File(outDir);
         if (!outputDir.exists()) {
-            outputDir.mkdir();
+            outputDir.mkdirs();
         }
         for (int i = 0; i < num; ++i) {
             double a = 0, stop = infos.get(i).len;

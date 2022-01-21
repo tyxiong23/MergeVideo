@@ -15,6 +15,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.util.Log;
@@ -22,18 +25,29 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.lang.String;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.example.myapplication.jni.FFmpegCmd;
+import com.example.myapplication.utils.Decompress;
 import com.example.myapplication.utils.FullyGridLayoutManager;
 import com.example.myapplication.utils.GlideEngine;
 import com.example.myapplication.utils.adapter.GridImageAdapter;
 import com.example.myapplication.utils.tools.ClearCache;
 import com.example.myapplication.utils.tools.Constants;
 import com.example.myapplication.utils.tools.CutVideo;
+import com.example.myapplication.utils.tools.FFmepgUtils;
 import com.example.myapplication.utils.tools.SelectVideos;
 import com.example.myapplication.utils.tools.VideoInfo;
 import com.luck.picture.lib.PictureSelector;
@@ -52,13 +66,18 @@ import com.luck.picture.lib.tools.MediaUtils;
 import com.luck.picture.lib.tools.ToastUtils;
 import com.yalantis.ucrop.view.OverlayView;
 
+//import com.alibaba.fastjson.JSONObject;
+
+
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
-    private Button next_button, clear_cache_button;
+    private Button next_button, clear_cache_button, install_button;
     private EditText input_text;
     private RecyclerView videoRecycle;
     private GridImageAdapter mAdapter;
@@ -66,11 +85,16 @@ public class MainActivity extends AppCompatActivity {
     private int selectMax = 10;
     private List<VideoInfo> videoInfos;
     private int interval = 5;
+    private TextView progress_text;
+    private ProgressBar progressBar;
+    private LinearLayout progress_layout;
+    private final String TEMPDIR = "/data/data/com.example.myapplication/tempfile";
 
     static {
         System.loadLibrary("myapplication");
-
     }
+
+    //主线程的Handler
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,32 +108,29 @@ public class MainActivity extends AppCompatActivity {
         clear_cache_button = binding.clearCache;
         input_text = binding.editTextTextMultiLine;
         videoRecycle = binding.recycler;
+        progressBar = binding.progressBar;
+        progress_text = binding.progressText;
+        progress_layout = binding.progressLayout;
         next_button.setClickable(true);
+        install_button = binding.installButton;
         videoInfos = new ArrayList<>();
         Toast.makeText(this, FFmpegCmd.test(), Toast.LENGTH_SHORT).show();
-        ffmpegTest();
+//        ffmpegTest();
 
 
 
         next_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String sentences = input_text.getText().toString();
-                Intent editIntent = new Intent(MainActivity.this, EditActivity.class);
-                editIntent.putExtra("sentences", sentences);
-//                next_button.setClickable(false);
-                String outputDir = Constants.getRunningDir();
-                List<String> cutResults = CutVideo.clipVideos(videoInfos, outputDir, interval);
-                String[] results = new String[cutResults.size()];
-                for (int i = 0; i < cutResults.size(); ++i) {
-                    results[i] = cutResults.get(i);
-                }
-                editIntent.putExtra("cut_files", results);
-                List<LocalMedia> selectList = new ArrayList<>();
-                mAdapter.setList(selectList);
-                mAdapter.notifyDataSetChanged();
-                input_text.setText("");
-                startActivity(editIntent);
+                roughCut();
+            }
+        });
+
+        install_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                install_button.setClickable(false);
+                installJittor();
             }
         });
 
@@ -119,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("cache", getApplicationContext().getExternalCacheDir().getParent());
                 String cacheDir = Constants.getCacheDir();
                 int count = ClearCache.delFolder(cacheDir);
-                Toast.makeText(getApplicationContext(), "清空缓存 [" + count + "] " + cacheDir, Toast.LENGTH_SHORT).show();
+                int count1 = ClearCache.delAllFile(TEMPDIR);
+                Toast.makeText(getApplicationContext(), "清空缓存 [" + count + "," + count1 + "] " + cacheDir, Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -167,6 +189,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         SelectVideos.clear();
+        next_button.setClickable(true);
+        progress_layout.setVisibility(View.INVISIBLE);
     }
 
     private final GridImageAdapter.onAddPicClickListener onAddPicClickListener = new GridImageAdapter.onAddPicClickListener() {
@@ -239,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.d("videoinfos", videoInfos.toString());
                             mAdapter.setList(selectList);
                             mAdapter.notifyDataSetChanged();
+
                         }
                     }
                 });
@@ -280,29 +305,261 @@ public class MainActivity extends AppCompatActivity {
 
     public native String stringFromJNI();
 
-    private void ffmpegTest() {
-        new Thread(){
-            @Override
-            public void run() {
-                long startTime = System.currentTimeMillis();
-                String input = "storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test.mp4";
-                String output = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test1.mp4";
-                String output_pic = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test2.jpeg";
-                java.io.File myFilePath = new java.io.File(output);
-                myFilePath.delete(); // 删除空文件夹
-                //剪切视频从00：20-00：28的片段
-                String cmd = "ffmpeg -d -ss 00:00:02 -t 00:00:05 -i %s -vcodec copy -acodec copy %s";
-                cmd = String.format(cmd,input,output);
-//                cmd = "ffmpeg -i %s -r 1 -f image2 %s";
-//                cmd = String.format(cmd,input,output_pic);
-                cmd = "ffmpeg -i %s -s vga %s";
-                cmd = String.format(cmd,input,output);
+    private List<String> resampleVideos(List<VideoInfo> infos, String outDir) {
+        int num = infos.size();
+        List<String> results = new ArrayList<>();
+        File outputDir = new File(outDir);
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+        Log.d("resample videos", "MKDIR" + outDir);
+        for (int i = 0; i < num; ++i) {
+            long startTime = System.currentTimeMillis();
+            String inPath = infos.get(i).path;
+            String short_name = String.valueOf(i) + ".mp4";
+            String outPath = outDir + "/" + short_name;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    progress_text.setText("FFmpeg resampling video " + short_name);
+                }
+            });
+            FFmepgUtils.resampleVideo(inPath, outPath);
+            results.add(outPath);
+        }
+        Log.d("Main activity", "finish resampling");
+        return results;
+    }
 
-                FFmpegCmd.run(cmd.split(" "));
-                Log.d("FFmpegTest", "run: 耗时："+(System.currentTimeMillis()-startTime));
+
+//    private void ffmpegTest() {
+//        new Thread(){
+//            @Override
+//            public void run() {
+//                long startTime = System.currentTimeMillis();
+//                String input = "storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test.mp4";
+//                String output = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test1.mp4";
+//                String output_pic = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies/test2.jpeg";
+//                java.io.File myFilePath = new java.io.File(output);
+//                myFilePath.delete(); // 删除空文件夹
+//                //剪切视频从00：20-00：28的片段
+//                String cmd = "ffmpeg -d -ss 00:00:02 -t 00:00:05 -i %s -vcodec copy -acodec copy %s";
+//                cmd = String.format(cmd,input,output);
+////                cmd = "ffmpeg -i %s -r 1 -f image2 %s";
+////                cmd = String.format(cmd,input,output_pic);
+//                cmd = "ffmpeg -i %s -s sxga -r 30 %s";
+//                cmd = String.format(cmd,input,output);
+//                FFmpegCmd.run(cmd.split(" "));
+//                Log.d("FFmpegTest", "run: 耗时："+(System.currentTimeMillis()-startTime));
+//            }
+//        }.start();
+//    }
+
+    private void roughCut() {
+        new Thread() {
+            @Override
+            public void run(){
+                // 开启进度条
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progress_layout.setVisibility(View.VISIBLE);
+                        next_button.setClickable(false);
+                    }
+                });
+
+                String sentences = input_text.getText().toString();
+
+                // 视频重采样
+                String outputDir = Constants.getRunningDir() + "/resample";
+                File f = new File(outputDir);
+                if (f.exists()){
+                    ClearCache.delFolder(f.getAbsolutePath());
+                }
+                List<String> cutResults = resampleVideos(videoInfos, outputDir);
+                String[] results = cutResults.toArray(new String[0]);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progress_layout.setVisibility(View.VISIBLE);
+                        progress_text.setText("VSE运行中");
+                    }
+                });
+
+                List<String> roughCut_inputs = new ArrayList<>();
+                for (int i = 0; i < cutResults.size(); ++i) {
+                    String srcVideo = cutResults.get(i);
+                    String frame_dir = "/data/data/com.example.myapplication/tempfile/frames";
+                    File ff = new File(frame_dir);
+                    if (ff.exists() && ff.isDirectory()) {
+                        ClearCache.delFolder(frame_dir);
+                    }
+
+//                    roughCut_inputs.add(frame_dir);
+                    FFmepgUtils.getFrames(srcVideo, frame_dir);
+                    File img_list_file = new File(frame_dir);
+                    String[] img_list = img_list_file.list();
+                    Log.d("image_list", String.valueOf(img_list.length));
+                    String src_json = frame_dir + "/input.json";
+
+                    try{
+                        OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(src_json),"UTF-8");
+
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("text", sentences);
+                        for (int j = 0; j < img_list.length; ++j) {
+//                            jsonObject.fluentPut("imgs", frame_dir + "/" + img_list[j]);
+                            jsonObject.accumulate("imgs",frame_dir + "/" + img_list[j]);
+                        }
+                        String jsonConent = jsonObject.toString().replace("\\", "");
+                        Log.d("jsonContent", jsonConent);
+                        osw.write(jsonConent);
+                        osw.flush();//清空缓冲区，强制输出数据
+                        osw.close();//关闭输出流
+                        runVse(frame_dir);
+
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+
+
+
+
+
+                }
+
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        progress_layout.setVisibility(View.VISIBLE);
+//                        progress_text.setText("VSE 运行中");
+//
+//                    }
+//                });
+
+//                for (String inDir : roughCut_inputs) {
+//                    runVse(inDir);
+//                }
+
+
+                List<LocalMedia> selectList = new ArrayList<>();
+
+
+
+                // 页面跳转
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.setList(selectList);
+                        mAdapter.notifyDataSetChanged();
+                        input_text.setText("");
+                        Intent editIntent = new Intent(MainActivity.this, EditActivity.class);
+                        editIntent.putExtra("sentences", sentences);
+                        editIntent.putExtra("cut_files", results);
+                        startActivity(editIntent);
+                        Log.d("MainActivity", "End!!");
+                    }
+                });
             }
         }.start();
-
-
     }
+
+    private void installJittor() {
+        Context mc = getApplicationContext();
+        Toast.makeText(mc,"开始安装", Toast.LENGTH_SHORT).show();
+        try {
+            // install environment from termux.
+            Decompress dc = new Decompress();
+            dc.unzipFromAssets(getApplicationContext(),"termux.zip","/data/data/com.example.myapplication/");
+            Toast.makeText(mc,"安装成功", Toast.LENGTH_SHORT).show();
+            Log.d("termux", "安装成功");
+
+            Process process1 = Runtime.getRuntime().exec("chmod 777 -R ./termux",null,new File("/data/data/com.example.myapplication/"));
+            // install jittor code
+            File jtdir = new File("/data/data/com.example.myapplication/myjittor");
+            if(jtdir.exists()){
+                jtdir.mkdir();
+            }
+            //start
+            dc.unzipFromAssets(getApplicationContext(),"jittor.tgz","/data/data/com.example.myapplication/myjittor");
+            Toast.makeText(mc,"Jittor安装成功", Toast.LENGTH_SHORT).show();
+            Process process2 = Runtime.getRuntime().exec("chmod 777 -R ./myjittor",null,new File("/data/data/com.example.myapplication/"));
+            File tmpdir = new File("/data/data/com.example.myapplication/tempfile");
+            if(!tmpdir.exists()){
+                tmpdir.mkdir();
+            }
+            Process process3 = Runtime.getRuntime().exec("chmod 777 -R ./tempfile",null,new File("/data/data/com.example.myapplication/"));
+            dc.unzipFromAssets(getApplicationContext(),"vse.tgz","/data/data/com.example.myapplication");
+            Toast.makeText(mc,"VSE安装成功", Toast.LENGTH_SHORT).show();
+            Process process4 = Runtime.getRuntime().exec("chmod 777 -R ./vsepp-jittor",null,new File("/data/data/com.example.myapplication/"));
+                        File tmpdir2 = new File("/data/data/com.example.myapplication/tempfile");
+                        if(!tmpdir2.exists()){
+                            tmpdir2.mkdir();
+                        }
+            //end
+        }
+        catch (Error e){
+            e.printStackTrace();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    void runVse(String inDir){
+        try{
+            Process process = Runtime.getRuntime().exec("./termux/bin/sh", null, new File("/data/data/com.example.myapplication/"));
+            DataOutputStream os = new DataOutputStream(process.getOutputStream());
+//            os.writeBytes("chmod 777 -R ./tempfile" + "\n");
+//            os.writeBytes("chmod 777 -R ./vsepp-jittor" + "\n");
+//            os.writeBytes("./termux/bin/sh" + "\n");
+//            Log.d("runVse", "1");
+            os.writeBytes("mkdir -p .cache/jittor/default/clang" + "\n");
+            os.writeBytes("cd .cache/jittor/default/clang" + "\n");
+            os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtbegin_so.o crtbegin_so.o" + "\n");
+            os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtend_so.o crtend_so.o" + "\n");
+            os.writeBytes("ln -s jit_utils_core.cpython-39.so libjit_utils_core.so" + "\n");
+            os.writeBytes("ln -s jittor_core.cpython-39.so libjittor_core.so" + "\n");
+            os.writeBytes("export LD_LIBRARY_PATH=/data/data/com.example.myapplication/termux/lib:/data/data/com.example.myapplication/.cache/jittor/default/clang" + "\n");
+            os.writeBytes("export PATH=/data/data/com.example.myapplication/termux/bin:$PATH" + "\n");
+            os.writeBytes("export cc_path=clang" + "\n");
+            os.writeBytes("export TMPDIR=/data/data/com.example.myapplication/tempfile" + "\n");
+            os.writeBytes("echo test \n");
+            os.writeBytes("export PYTHONPATH=/data/data/com.example.myapplication/myjittor" + "\n");
+            os.writeBytes("export C_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
+            os.writeBytes("export CPLUS_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
+            os.writeBytes("python -c 'print(123)'" + "\n");
+            String comm = "export input_json=\"" + inDir + "/input.json\"" + "\n";
+            System.out.println(comm);
+            os.writeBytes(comm);
+            os.writeBytes("cd /data/data/com.example.myapplication/vsepp-jittor/\n");
+            os.writeBytes("is_mobile=1 use_c=0 python run.py\n");
+            os.writeBytes("exit" + "\n");
+            os.flush();
+            String temp;
+            String temp2;
+            String show = "";
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            while ((temp = reader.readLine()) != null) {
+                show = show + temp + "\n";
+                Log.d("PYTHON", temp);
+                System.out.println(temp);
+            }
+            BufferedReader errorreader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            while ((temp2 = errorreader.readLine()) != null) {
+                show = show + temp2 + "\n";
+                Log.d("PYTHON ERROR", temp2);
+                System.out.println(temp2);
+            }
+            process.waitFor();
+            Log.d("runVSE", "finish vse");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 }
