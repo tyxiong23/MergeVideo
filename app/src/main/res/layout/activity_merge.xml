@@ -40,22 +40,25 @@
         android:id="@+id/save_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="30dp"
-        android:layout_marginStart="70dp"
+        android:layout_marginEnd="50dp"
+        android:layout_marginStart="40dp"
         android:layout_marginBottom="15dp"
         android:text="保存"
+        android:backgroundTint="@color/input_background"
         android:layout_weight="1"
          />
+
+
+
 
         <Button
             android:id="@+id/exit_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="70dp"
+            android:layout_marginEnd="40dp"
             android:layout_marginBottom="15dp"
             android:layout_weight="1"
             android:text="退出"
-            android:backgroundTint="#FFC400" />
+            android:backgroundTint="#FF9B94" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

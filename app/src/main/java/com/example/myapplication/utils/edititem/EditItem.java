@@ -1,4 +1,4 @@
-package com.example.myapplication.utils;
+package com.example.myapplication.utils.edititem;
 
 public class EditItem {
     private String sentence;

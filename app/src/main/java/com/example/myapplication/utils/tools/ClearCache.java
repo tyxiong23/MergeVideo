@@ -2,9 +2,17 @@ package com.example.myapplication.utils.tools;
 
 import java.io.File;
 
+
+/**
+ * 清理缓存
+ */
 public class ClearCache {
-    //	// 删除完文件后删除文件夹
-    // param folderPath 文件夹完整绝对路径
+
+    /**
+     * 删除完文件后删除文件夹
+     * @param folderPath 文件夹完整绝对路径
+     * @return 删除文件数量
+     */
     public static int delFolder(String folderPath) {
         try {
             int count =  delAllFile(folderPath); // 删除完里面所有内容
@@ -21,8 +29,11 @@ public class ClearCache {
         }
     }
 
-    // 删除指定文件夹下所有文件
-    // param path 文件夹完整绝对路径
+    /**
+     * 删除指定文件夹下所有文件（保留文件夹）
+     * @param path 文件夹完整绝对路径
+     * @return 删除文件数量
+     */
     public static int delAllFile(String path) {
         int count = 0;
         File file = new File(path);

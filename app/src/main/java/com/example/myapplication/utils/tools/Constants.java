@@ -1,8 +1,12 @@
 package com.example.myapplication.utils.tools;
 
+/**
+ * 程序运行中的一些常数
+ */
 public class Constants {
-    private static String CACHE_DIR = "/storage/emulated/0/Android/data/com.example.myapplication/files/Movies";
-    private static long rand = System.currentTimeMillis();
+    private static String CACHE_DIR = "/storage/emulated/0/Android/data/com.example.myapplication/cache";
+    private static String SAVE_DIR = "/storage/emulated/0/Android/data/com.example.myapplication/files";
+    private static long rand = System.currentTimeMillis(); //本次任务的编号，由系统时钟生成
     public static long update() {
         rand = System.currentTimeMillis();
         return rand;
@@ -11,15 +15,15 @@ public class Constants {
     public static String getRunningDir() {
         return CACHE_DIR + "/" + String.valueOf(rand);
     }
-    public static void updateCacheDir(String dir) {
-        CACHE_DIR = dir;
-    }
     public static long getId() {
         return rand;
     }
-    public static String getSaveDir() { return CACHE_DIR.replace("Movies", "Save"); }
-    public static int W = 800, H = 800;
+    public static String getSaveDir() { return SAVE_DIR; }
+    public static int W = 1080, H =1080;
     public static float minRoughInterval = 4.5f;
     public static float defaultFinetuneInterval = 3.0f;
+    public static final String TEMPDIR = "/data/data/com.example.myapplication/tempfile";
+    public static final String MUSICPATH = "/data/data/com.example.myapplication/music/summer.mp3";
+    public static final float USER_FINETUNE_ALPHA = 0.2f;
 
 }

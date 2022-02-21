@@ -1,4 +1,8 @@
-package com.example.myapplication.utils;
+package com.example.myapplication.utils.album;
+
+/**
+ * 不适用于Android API 28
+ */
 
 //import android.content.Context;
 //import android.graphics.Bitmap;

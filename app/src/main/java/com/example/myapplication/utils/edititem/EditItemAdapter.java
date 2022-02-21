@@ -1,4 +1,4 @@
-package com.example.myapplication.utils;
+package com.example.myapplication.utils.edititem;
 
 import android.media.MediaPlayer;
 import android.util.Log;
@@ -15,7 +15,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
-import com.example.myapplication.utils.tools.SelectVideos;
 import com.google.android.material.chip.Chip;
 
 import java.io.File;

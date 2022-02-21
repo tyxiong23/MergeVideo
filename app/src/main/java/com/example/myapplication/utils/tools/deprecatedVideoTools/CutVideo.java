@@ -1,10 +1,11 @@
-package com.example.myapplication.utils.tools;
+package com.example.myapplication.utils.tools.deprecatedVideoTools;
 
 
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.coremedia.iso.boxes.Container;
+import com.example.myapplication.utils.tools.VideoInfo;
 import com.googlecode.mp4parser.authoring.Movie;
 import com.googlecode.mp4parser.authoring.Track;
 import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
@@ -23,6 +24,7 @@ import java.util.List;
  * Author: AlanWang4523.
  * Date: 17/3/21 11:40.
  * Mail: alanwang6584@gmail.com
+ * 在引入ffmpeg之前的视频剪辑工具，功能不完善，现在已经弃用
  */
 
 public class CutVideo {

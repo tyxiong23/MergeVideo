@@ -104,16 +104,21 @@ Java_com_example_myapplication_jni_FinetuneUtils_getSimilarity(JNIEnv *env, jcla
 
 
 extern "C"
-JNIEXPORT jint JNICALL
-Java_com_example_myapplication_jni_FinetuneUtils_getFinetuneResultStart(JNIEnv *env, jclass clazz,
-                                                                        jfloatArray scores,
-                                                                        jint interval_frames,
-                                                                        jint total_frames) {
-    // TODO: implement getFinetuneResultStart()
-    jint start = 0; jfloat max_scores = 0, tmp_scores = 0;
+JNIEXPORT jobject JNICALL
+Java_com_example_myapplication_jni_FinetuneUtils_getFinetuneResult(JNIEnv *env, jclass clazz,
+                                                                   jfloatArray scores,
+                                                                   jint interval_frames,
+                                                                   jint total_frames, jobject obj) {
+    // TODO: implement getFinetuneResult()
+    int start = 0, numFrames = interval_frames + 1; float max_scores = 0, tmp_scores = 0;
     jfloat* rec = env->GetFloatArrayElements(scores, JNI_FALSE);
-    if (rec == NULL || interval_frames > total_frames){
-        return 0;
+    if (rec == NULL || numFrames > total_frames){
+        jclass c = env->GetObjectClass(obj);
+        jfieldID startField = env->GetFieldID(c, "start", "I");
+        jfieldID scoreField = env->GetFieldID(c, "score", "F");
+        (env)->SetFloatField(obj, scoreField, 0.0f);
+        (env)->SetIntField(obj, startField, 0);
+        return obj;
     }
     for (int i = 0; i <= interval_frames; ++i){
         tmp_scores += rec[i];
@@ -126,5 +131,10 @@ Java_com_example_myapplication_jni_FinetuneUtils_getFinetuneResultStart(JNIEnv *
             start = i;
         }
     }
-    return start;
+    jclass c = env->GetObjectClass(obj);
+    jfieldID startField = env->GetFieldID(c, "start", "I");
+    jfieldID scoreField = env->GetFieldID(c, "score", "F");
+    (env)->SetFloatField(obj, scoreField, max_scores / numFrames);
+    (env)->SetIntField(obj, startField, start);
+    return obj;
 }

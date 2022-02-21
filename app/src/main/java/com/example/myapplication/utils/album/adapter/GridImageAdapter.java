@@ -1,10 +1,8 @@
-package com.example.myapplication.utils.adapter;
+package com.example.myapplication.utils.album.adapter;
 
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;

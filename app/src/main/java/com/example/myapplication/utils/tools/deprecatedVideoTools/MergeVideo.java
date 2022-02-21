@@ -1,4 +1,4 @@
-package com.example.myapplication.utils.tools;
+package com.example.myapplication.utils.tools.deprecatedVideoTools;
 
 import com.coremedia.iso.boxes.Container;
 import com.googlecode.mp4parser.authoring.Movie;
@@ -17,7 +17,9 @@ import java.util.List;
  * Author: AlanWang4523.
  * Date: 19/4/15 01:46.
  * Mail: alanwang4523@gmail.com
+ * 引入FFmpeg之前的视频拼接工具，现在已经弃用
  */
+
 public class MergeVideo {
     private final static String PREFIX_VIDEO_HANDLER = "vide";
     private final static String PREFIX_AUDIO_HANDLER = "soun";

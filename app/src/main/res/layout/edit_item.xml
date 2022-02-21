@@ -8,7 +8,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/edit_item_sentence"
-        android:background="@color/app_color_white_transparent"/>
+        android:padding="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/input_background"/>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:orientation="horizontal"
         android:layout_width="match_parent"
@@ -18,7 +20,10 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:layout_margin="1dp"
+            android:layout_marginStart="1dp"
+            android:layout_marginEnd="1dp"
+            android:layout_marginBottom="5dp"
+
             android:layout_weight="1">
             <VideoView
                 android:layout_width="320dp"

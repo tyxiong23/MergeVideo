@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
+/**
+ * 用于复制文件，在最后保存视频时用到
+ */
 public class CopyFile {
     public static boolean fileChannelCopy(String srcDirName, String destDirName) {
         FileInputStream fi = null;

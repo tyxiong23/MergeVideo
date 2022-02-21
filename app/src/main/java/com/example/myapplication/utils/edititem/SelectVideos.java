@@ -1,12 +1,14 @@
-package com.example.myapplication.utils.tools;
+package com.example.myapplication.utils.edititem;
 
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 记录Edit界面用户选择的视频
+ */
 public class SelectVideos {
     private static List<Record> selectedVideos = new ArrayList<>();
     public static List<Integer> getIndexList() {

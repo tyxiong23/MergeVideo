@@ -2,8 +2,8 @@ package com.example.myapplication;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -14,19 +14,20 @@ import android.widget.MediaController;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import com.example.myapplication.utils.tools.ClearCache;
 import com.example.myapplication.utils.tools.Constants;
 import com.example.myapplication.utils.tools.CopyFile;
-import com.example.myapplication.utils.tools.MergeVideo;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.FileNameMap;
+import java.net.URLConnection;
 
 public class MergeActivity extends AppCompatActivity {
     private VideoView videoView;
     private MediaController mediaController;
     private Button buttonExit, buttonSave;
     private String videoPath;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,25 +41,19 @@ public class MergeActivity extends AppCompatActivity {
         buttonExit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                clearCache();
                 finishAffinity();
             }
         });
+
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String save_dir = Constants.getSaveDir();
-                File saveFileDir = new File(save_dir);
-                if (!saveFileDir.exists())
-                    saveFileDir.mkdir();
-                String save_path =  save_dir + "/" + Constants.getId() + "_final.mp4";
-                boolean result = CopyFile.fileChannelCopy(videoPath, save_path);
-                if (result)
-                    Toast.makeText(getApplicationContext(), "[保存成功] " + save_path, Toast.LENGTH_SHORT).show();
-                else
-                    Toast.makeText(getApplicationContext(), "[保存失败] " + save_path, Toast.LENGTH_SHORT).show();
+                saveToAlbum();
 
             }
         });
+
 
         Bundle bundle = getIntent().getExtras();
         videoPath = bundle.getString("video_path", "");
@@ -132,6 +127,52 @@ public class MergeActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this,"视频路径解析失败", Toast.LENGTH_SHORT);
             buttonSave.setEnabled(false);
+        }
+    }
+
+    private void clearCache() {
+        Log.e("cache", getApplicationContext().getExternalCacheDir().getParent());
+        String cacheDir = Constants.getCacheDir();
+        int count = ClearCache.delFolder(cacheDir);
+        int count1 = ClearCache.delAllFile(Constants.TEMPDIR);
+        Toast.makeText(getApplicationContext(), "清空缓存 [" + count + "," + count1 + "] " + cacheDir, Toast.LENGTH_SHORT).show();
+    }
+
+    private void saveToAlbum() {
+        String save_dir = Constants.getSaveDir();
+        File saveFileDir = new File(save_dir);
+        if (!saveFileDir.exists())
+            saveFileDir.mkdirs();
+
+        String short_path =  Constants.getId() + "_final.mp4";
+        File[] media_dirs = getApplicationContext().getExternalMediaDirs();
+        if (media_dirs.length > 0){
+            String mediaDir = media_dirs[0].getAbsolutePath();
+            System.out.println(media_dirs[0].exists());
+            String save_path = mediaDir + "/" + short_path;
+
+            System.out.println(getApplicationContext().getExternalMediaDirs().length + "length" + getApplicationContext().getExternalMediaDirs()[0]);
+
+            boolean result = CopyFile.fileChannelCopy(videoPath, save_path);
+            System.out.println("save to media " + result);
+
+            if (result) {
+                File saveVideo = new File(save_path);
+                FileNameMap fileNameMap = URLConnection.getFileNameMap();
+                String type = fileNameMap.getContentTypeFor(saveVideo.getName());
+                MediaScannerConnection mMediaScanner = new MediaScannerConnection(getApplicationContext(), null);
+                mMediaScanner.connect();
+
+                Log.d("mMediaScanner", (mMediaScanner !=null) + " " + mMediaScanner.isConnected() + " " + type);
+                if (mMediaScanner !=null && mMediaScanner.isConnected()) {
+                    mMediaScanner.scanFile(save_path, type);
+                }
+                Toast.makeText(getApplicationContext(), "[成功保存到相册] " + save_path, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "[保存失败] " + save_path, Toast.LENGTH_SHORT).show();
+            }
+        } else{
+            Toast.makeText(getApplicationContext(), "[保存失败]", Toast.LENGTH_SHORT).show();
         }
     }
 }

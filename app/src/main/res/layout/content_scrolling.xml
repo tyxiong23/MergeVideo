@@ -49,7 +49,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textMultiLine"
-            android:background="@color/input_background"/>
+            android:textStyle="bold"
+            android:background="@color/purple_100"/>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/edit_recycler"
             android:layout_width="match_parent"

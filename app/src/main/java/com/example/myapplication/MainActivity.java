@@ -7,29 +7,19 @@ package com.example.myapplication;
 import static com.example.myapplication.R.color.purple_200;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-import android.text.Editable;
-import android.text.TextUtils;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -46,23 +36,20 @@ import java.lang.String;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.example.myapplication.jni.FFmpegCmd;
-import com.example.myapplication.utils.Decompress;
-import com.example.myapplication.utils.FullyGridLayoutManager;
+import com.example.myapplication.utils.TermuxUtils;
+import com.example.myapplication.utils.tools.Decompress;
+import com.example.myapplication.utils.album.FullyGridLayoutManager;
 
-import com.example.myapplication.utils.adapter.GridImageAdapter;
+import com.example.myapplication.utils.album.adapter.GridImageAdapter;
 import com.example.myapplication.utils.tools.ClearCache;
 import com.example.myapplication.utils.tools.Constants;
-import com.example.myapplication.utils.tools.CutVideo;
-import com.example.myapplication.utils.tools.FFmepgUtils;
-import com.example.myapplication.utils.tools.SelectVideos;
+import com.example.myapplication.utils.tools.FFmpegUtils;
+import com.example.myapplication.utils.edititem.SelectVideos;
 import com.example.myapplication.utils.tools.VideoInfo;
-import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
 import com.luck.picture.lib.entity.LocalMedia;
-import com.luck.picture.lib.permissions.Permission;
-import com.luck.picture.lib.permissions.RxPermissions;
 //import com.luck.picture.lib.broadcast.BroadcastAction;
 //import com.luck.picture.lib.broadcast.BroadcastManager;
 //import com.luck.picture.lib.compress.Luban;
@@ -75,7 +62,6 @@ import com.luck.picture.lib.permissions.RxPermissions;
 //import com.luck.picture.lib.permissions.PermissionChecker;
 //import com.luck.picture.lib.tools.MediaUtils;
 //import com.luck.picture.lib.tools.ToastUtils;
-import com.yalantis.ucrop.view.OverlayView;
 
 //import com.alibaba.fastjson.JSONObject;
 
@@ -99,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView progress_text;
     private ProgressBar progressBar;
     private LinearLayout progress_layout;
-    private final String TEMPDIR = "/data/data/com.example.myapplication/tempfile";
+
 
     static {
         System.loadLibrary("myapplication");
@@ -109,8 +95,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        String cacheDir = getApplicationContext().getExternalCacheDir().getParent() + "/files/Movies";
-        Constants.updateCacheDir(cacheDir);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -134,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
         next_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (videoInfos.size() == 0){
+                    Toast.makeText(getApplicationContext(), "没有上传的视频！！", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 roughCut();
             }
         });
@@ -153,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("cache", getApplicationContext().getExternalCacheDir().getParent());
                 String cacheDir = Constants.getCacheDir();
                 int count = ClearCache.delFolder(cacheDir);
-                int count1 = ClearCache.delAllFile(TEMPDIR);
+                int count1 = ClearCache.delAllFile(Constants.TEMPDIR);
                 Toast.makeText(getApplicationContext(), "清空缓存 [" + count + "," + count1 + "] " + cacheDir, Toast.LENGTH_SHORT).show();
             }
         });
@@ -375,8 +363,9 @@ public class MainActivity extends AppCompatActivity {
                     progress_text.setText("FFmpeg resampling video " + short_name);
                 }
             });
-            FFmepgUtils.resampleVideo(inPath, outPath);
-            results.add(outPath);
+            boolean result = FFmpegUtils.resampleVideo(inPath, outPath);
+            if(result)
+                results.add(outPath);
         }
         Log.d("Main activity", "finish resampling");
         return results;
@@ -446,8 +435,10 @@ public class MainActivity extends AppCompatActivity {
 //                        editIntent.putExtra("cut_files", resampleResults.toArray(new String[0]));
 //                        startActivity(editIntent);
 //                        Log.d("MainActivity", "End!!");
+//                        Log.d("path", Environment.getExternalStorageDirectory().getAbsolutePath());
 //                    }
 //                });
+
 
 
 
@@ -467,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
                         ClearCache.delFolder(frame_dir);
                     }
 
-                    FFmepgUtils.getFrames(srcVideo, frame_dir, roughFPS);
+                    FFmpegUtils.getFrames(srcVideo, frame_dir, roughFPS);
                     File img_list_file = new File(frame_dir);
                     String[] img_list = img_list_file.list();
                     Log.d("image_list", String.valueOf(img_list.length));
@@ -486,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
                         osw.write(jsonConent);
                         osw.flush();//清空缓冲区，强制输出数据
                         osw.close();//关闭输出流
-                        runVse(frame_dir);
+                        TermuxUtils.runVse(frame_dir);
 
                         File cut_txt = new File(frame_dir, "rough_cut.txt");
                         if (cut_txt.exists()) {
@@ -503,7 +494,7 @@ public class MainActivity extends AppCompatActivity {
                                     continue;
                                 }
                                 String outPath = Constants.getRunningDir() + String.format("/rough/%d-%d.mp4", i, cut_num);
-                                FFmepgUtils.cutVideo(srcVideo, outPath, start, end, roughFPS);
+                                FFmpegUtils.cutVideo(srcVideo, outPath, start, end, roughFPS);
                                 roughCut_results.add(outPath);
                                 cut_num++;
                             }
@@ -555,7 +546,7 @@ public class MainActivity extends AppCompatActivity {
             Process process1 = Runtime.getRuntime().exec("chmod 777 -R ./termux",null,new File("/data/data/com.example.myapplication/"));
             // install jittor code
             File jtdir = new File("/data/data/com.example.myapplication/myjittor");
-            if(jtdir.exists()){
+            if(!jtdir.exists()){
                 jtdir.mkdir();
             }
             //start
@@ -574,7 +565,14 @@ public class MainActivity extends AppCompatActivity {
                         if(!tmpdir2.exists()){
                             tmpdir2.mkdir();
                         }
-            //end
+            // unzip music
+            File musicDir = new File("/data/data/com.example.myapplication/music");
+            if(!musicDir.exists()){
+                musicDir.mkdir();
+            }
+            dc.unzipFromAssets(getApplicationContext(), "music.tgz", "/data/data/com.example.myapplication/music");
+
+
             initJittor();
         }
         catch (Error e){
@@ -585,53 +583,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void runVse(String inDir){
-        Long t1 = System.currentTimeMillis();
-        try{
-            Process process = Runtime.getRuntime().exec("./termux/bin/sh", null, new File("/data/data/com.example.myapplication/"));
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-//            Log.d("runVse", "1");
-//            os.writeBytes("mkdir -p .cache/jittor/default/clang" + "\n");
-//            os.writeBytes("cd .cache/jittor/default/clang" + "\n");
-//            os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtbegin_so.o crtbegin_so.o" + "\n");
-//            os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtend_so.o crtend_so.o" + "\n");
-//            os.writeBytes("ln -s jit_utils_core.cpython-39.so libjit_utils_core.so" + "\n");
-//            os.writeBytes("ln -s jittor_core.cpython-39.so libjittor_core.so" + "\n");
-            os.writeBytes("export LD_LIBRARY_PATH=/data/data/com.example.myapplication/termux/lib:/data/data/com.example.myapplication/.cache/jittor/default/clang" + "\n");
-            os.writeBytes("export PATH=/data/data/com.example.myapplication/termux/bin:$PATH" + "\n");
-            os.writeBytes("export cc_path=clang" + "\n");
-            os.writeBytes("export TMPDIR=/data/data/com.example.myapplication/tempfile" + "\n");
-            os.writeBytes("echo test \n");
-            os.writeBytes("export PYTHONPATH=/data/data/com.example.myapplication/myjittor" + "\n");
-            os.writeBytes("export C_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
-            os.writeBytes("export CPLUS_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
-            os.writeBytes("python -c 'print(123)'" + "\n");
-            String comm = "export input_json=\"" + inDir + "/input.json\"" + "\n";
-            System.out.println(comm);
-            os.writeBytes(comm);
-            os.writeBytes("cd /data/data/com.example.myapplication/vsepp-jittor/\n");
-            os.writeBytes("is_mobile=1 use_c=0 python run.py\n");
-            os.writeBytes("exit" + "\n");
-            os.flush();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String temp = null;
-            while ((temp = reader.readLine()) != null) {
-                Log.d("INFO", temp);
-//                System.out.println(temp);
-            }
-            String temp2;
-            BufferedReader errorreader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            while ((temp2 = errorreader.readLine()) != null) {
-                Log.d("ERROR", temp2);
-//                System.out.println(temp2);
-            }
-            process.waitFor();
-            Long t2 = System.currentTimeMillis();
-            Log.d("runVSE", String.format("finish vse in %d s", (t2-t1)/1000));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     void initJittor() {
         new Thread(new Runnable() {
@@ -648,56 +599,7 @@ public class MainActivity extends AppCompatActivity {
                         videoRecycle.setClickable(false);
                     }
                 });
-                try{
-                    Process process = Runtime.getRuntime().exec("./termux/bin/sh", null, new File("/data/data/com.example.myapplication/"));
-                    DataOutputStream os = new DataOutputStream(process.getOutputStream());
-//            os.writeBytes("chmod 777 -R ./tempfile" + "\n");
-//            os.writeBytes("chmod 777 -R ./vsepp-jittor" + "\n");
-//            os.writeBytes("./termux/bin/sh" + "\n");
-//            Log.d("runVse", "1");
-                    os.writeBytes("mkdir -p .cache/jittor/default/clang" + "\n");
-                    os.writeBytes("cd .cache/jittor/default/clang" + "\n");
-                    os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtbegin_so.o crtbegin_so.o" + "\n");
-                    os.writeBytes("ln -s /data/data/com.example.myapplication/termux/lib/crtend_so.o crtend_so.o" + "\n");
-                    os.writeBytes("ln -s jit_utils_core.cpython-39.so libjit_utils_core.so" + "\n");
-                    os.writeBytes("ln -s jittor_core.cpython-39.so libjittor_core.so" + "\n");
-                    os.writeBytes("export LD_LIBRARY_PATH=/data/data/com.example.myapplication/termux/lib:/data/data/com.example.myapplication/.cache/jittor/default/clang" + "\n");
-                    os.writeBytes("export PATH=/data/data/com.example.myapplication/termux/bin:$PATH" + "\n");
-                    os.writeBytes("export cc_path=clang" + "\n");
-                    os.writeBytes("export TMPDIR=/data/data/com.example.myapplication/tempfile" + "\n");
-                    os.writeBytes("echo test \n");
-                    os.writeBytes("export PYTHONPATH=/data/data/com.example.myapplication/myjittor" + "\n");
-                    os.writeBytes("export C_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
-                    os.writeBytes("export CPLUS_INCLUDE_PATH=/data/data/com.example.myapplication/.cache/jittor/default/clang:/data/data/com.example.myapplication/termux/include:/data/data/com.example.myapplication/termux/include/c++/v1" + "\n");
-                    os.writeBytes("python -c 'print(123)'" + "\n");
-                    os.writeBytes("cd /data/data/com.example.myapplication/\n");
-//            os.writeBytes("ls" + "\n");
-//            System.out.println("ls");
-//            System.out.println("ls");
-                    os.writeBytes("is_mobile=1 use_c=0 python -c 'import jittor'" + "\n");
-                    os.writeBytes("is_mobile=1 use_c=0 python -c 'import jittor'" + "\n");
-                    os.writeBytes("exit" + "\n");
-                    os.flush();
-                    String temp;
-                    String temp2;
-                    String show = "";
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    while ((temp = reader.readLine()) != null) {
-                        show = show + temp + "\n";
-                        Log.d("INFO", temp);
-//                System.out.println(temp);
-                    }
-                    BufferedReader errorreader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                    while ((temp2 = errorreader.readLine()) != null) {
-                        show = show + temp2 + "\n";
-                        Log.d("ERROR", temp2);
-//                System.out.println(temp2);
-                    }
-                    process.waitFor();
-                    Log.d("runINIT", "finish INIT");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                TermuxUtils.installJittor();
                 runOnUiThread(new Runnable() {
                     @SuppressLint("ResourceAsColor")
                     @Override
@@ -711,7 +613,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
-
 
 
 }
