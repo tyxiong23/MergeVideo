@@ -43,25 +43,36 @@
                 android:typeface="monospace" />
         </LinearLayout>
         <TextView
+            android:id="@+id/theme_text"
+            android:padding="10dp"
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="textMultiLine"
+            android:text="主题：暂无"
+            android:textStyle="bold"
+            android:background="@color/purple_100"/>
+        <TextView
             android:id="@+id/edit_text"
             android:layout_margin="15dp"
             android:padding="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textMultiLine"
-            android:textStyle="bold"
-            android:background="@color/purple_100"/>
+            android:textSize="14sp"
+            android:background="@color/text_light_background"/>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/edit_recycler"
             android:layout_width="match_parent"
-            android:layout_height="551dp" />
+            android:layout_height="wrap_content" />
 
 
-        <!--    <TextView-->
-        <!--        android:layout_width="wrap_content"-->
-        <!--        android:layout_height="wrap_content"-->
-        <!--        android:layout_margin="@dimen/text_margin"-->
-        <!--        android:text="@string/large_text" />-->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:text="@string/edit_info" />
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>

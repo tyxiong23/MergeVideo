@@ -45,6 +45,7 @@ import com.example.myapplication.utils.tools.ClearCache;
 import com.example.myapplication.utils.tools.Constants;
 import com.example.myapplication.utils.tools.FFmpegUtils;
 import com.example.myapplication.utils.edititem.SelectVideos;
+import com.example.myapplication.utils.tools.Theme;
 import com.example.myapplication.utils.tools.VideoInfo;
 import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
@@ -199,9 +200,6 @@ public class MainActivity extends AppCompatActivity {
 //                BroadcastAction.ACTION_DELETE_PREVIEW_POSITION);
 
 //        launcherResult = createActivityResultLauncher();
-
-
-        
 
     }
 
@@ -420,6 +418,13 @@ public class MainActivity extends AppCompatActivity {
                 }
                 List<String> resampleResults = resampleVideos(videoInfos, outputDir);
 
+                // 主题识别
+                String[] frames = resampleResults.toArray(new String[0]);
+                Theme theme = new Theme();
+                theme.recogize(frames, sentences);
+                Log.d("music", "theme:" + theme.getTheme() + " fpm:" + theme.getMusic().fpm + "src:" + theme.getMusic().src);
+                Constants.updateBGM(theme.getMusic());
+
 //                runOnUiThread(new Runnable() {
 //                    @Override
 //                    public void run() {
@@ -432,6 +437,7 @@ public class MainActivity extends AppCompatActivity {
 //                        next_button.setClickable(true);
 //                        Intent editIntent = new Intent(MainActivity.this, EditActivity.class);
 //                        editIntent.putExtra("sentences", sentences);
+//                        editIntent.putExtra("theme", theme.getTheme());
 //                        editIntent.putExtra("cut_files", resampleResults.toArray(new String[0]));
 //                        startActivity(editIntent);
 //                        Log.d("MainActivity", "End!!");
@@ -469,9 +475,19 @@ public class MainActivity extends AppCompatActivity {
 
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("text", sentences);
-                        for (int j = 0; j < img_list.length; ++j) {
-                            jsonObject.accumulate("imgs",frame_dir + "/" + img_list[j]);
+                        if (img_list.length <= 6) {
+                            for (int j = 0; j < img_list.length; ++j) {
+                                jsonObject.accumulate("imgs",frame_dir + "/" + img_list[j]);
+                            }
+                        } else {
+                            for (double j = 0; j < img_list.length; j += (img_list.length - 1) / 5.0) {
+                                jsonObject.accumulate("imgs",frame_dir + "/" + img_list[(int)j]);
+                                Log.d("selected frame", String.valueOf((int)j));
+                            }
                         }
+
+
+
                         String jsonConent = jsonObject.toString().replace("\\", "");
 //                        Log.d("jsonContent", jsonConent);
                         osw.write(jsonConent);
@@ -525,6 +541,7 @@ public class MainActivity extends AppCompatActivity {
                         Intent editIntent = new Intent(MainActivity.this, EditActivity.class);
                         editIntent.putExtra("sentences", sentences);
                         editIntent.putExtra("cut_files", results);
+                        editIntent.putExtra("theme", theme.getTheme());
                         startActivity(editIntent);
                         Log.d("MainActivity", "End!!");
                     }
@@ -613,6 +630,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
+
 
 
 }

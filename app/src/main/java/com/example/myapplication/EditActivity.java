@@ -37,7 +37,7 @@ public class EditActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private EditItemAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
-    private TextView contentText;
+    private TextView contentText, themeText;
     private FloatingActionButton next_fab;
     private TextView progress_text;
     private ProgressBar progressBar;
@@ -58,9 +58,13 @@ public class EditActivity extends AppCompatActivity {
 
         Bundle bundle = this.getIntent().getExtras();
         String content = bundle.getString("sentences");
+        String theme = bundle.getString("theme");
+        themeText = findViewById(R.id.theme_text);
+        themeText.setText("主题：" + theme);
+        themeText.setTextSize(16);
         contentText = findViewById(R.id.edit_text);
         contentText.setText(content);
-        contentText.setTextSize(18);
+
         progress_layout = findViewById(R.id.progress_layout_finetune);
         progressBar = findViewById(R.id.progress_bar_finetune);
         progress_text = findViewById(R.id.progress_text_finetune);

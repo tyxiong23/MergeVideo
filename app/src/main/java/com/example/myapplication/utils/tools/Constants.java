@@ -23,7 +23,13 @@ public class Constants {
     public static float minRoughInterval = 4.5f;
     public static float defaultFinetuneInterval = 3.0f;
     public static final String TEMPDIR = "/data/data/com.example.myapplication/tempfile";
-    public static final String MUSICPATH = "/data/data/com.example.myapplication/music/summer.mp3";
+    public static String MUSICPATH = "/data/data/com.example.myapplication/music/summer.mp3";
+    public static int MUSICFPM = 93;
     public static final float USER_FINETUNE_ALPHA = 0.2f;
+    public static void updateBGM(MusicInfo music){
+        MUSICFPM = music.fpm;
+        MUSICPATH = music.src;
+    }
+
 
 }

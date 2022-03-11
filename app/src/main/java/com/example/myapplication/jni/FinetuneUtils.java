@@ -20,7 +20,7 @@ public class FinetuneUtils {
 
     private static int FineImgH = 400, FineImgW = 400;
     private static int fps = 10;
-    private static int music_fpm = 93;
+//    private static int music_fpm = 93;
     private static float a_light = 0.4f;
 
     static {
@@ -133,11 +133,11 @@ public class FinetuneUtils {
 
         float interval = 0.0f;
         while (interval < Constants.defaultFinetuneInterval) {
-            interval += 60.0f / music_fpm;
+            interval += 60.0f / Constants.MUSICFPM;
         }
         Log.d("INTERVAL", String.valueOf(interval));
         while (interval > Constants.minRoughInterval)
-            interval -= 60.0f / music_fpm;
+            interval -= 60.0f / Constants.MUSICFPM;
         int numFrames = (int) (interval * fps);
         FineCutObj obj = new FineCutObj();
         obj = getFinetuneResult(total_scores, numFrames, imgs.size(), obj);
