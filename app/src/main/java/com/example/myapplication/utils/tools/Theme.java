@@ -17,7 +17,7 @@ public class Theme {
         musics.add(new MusicInfo(93, "/data/data/com.example.myapplication/music/summer.mp3"));
         themes.add("欢快");
 
-        musics.add(new MusicInfo(65, "/data/data/com.example.myapplication/music/summer.mp3"));
+        musics.add(new MusicInfo(65, "/data/data/com.example.myapplication/music/innocent.mp3"));
         themes.add("忧伤");
 
         themeID = 0;
@@ -29,6 +29,6 @@ public class Theme {
         return themes.get(themeID);
     }
     public void recogize(String[] frames, String words){
-        themeID = (words.length() + frames.length) % musics.size();
+        themeID = (int)(words.length() + frames.length + System.currentTimeMillis()) % musics.size();
     }
 }

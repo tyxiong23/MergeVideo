@@ -3,14 +3,16 @@ package com.example.myapplication;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.example.myapplication.databinding.ActivityEditBinding;
 import com.example.myapplication.jni.ConcatUtils;
 import com.example.myapplication.jni.FineResult;
 import com.example.myapplication.jni.FinetuneUtils;
-import com.example.myapplication.utils.edititem.EditItem;
-import com.example.myapplication.utils.edititem.EditItemAdapter;
+import com.example.myapplication.utils.edit.EditBlock;
+import com.example.myapplication.utils.edit.EditBlockAdapter;
+import com.example.myapplication.utils.edit.EditItem;
+import com.example.myapplication.utils.edit.EditItemAdapter;
 import com.example.myapplication.utils.tools.Constants;
 import com.example.myapplication.utils.tools.FFmpegUtils;
-import com.example.myapplication.utils.edititem.SelectVideos;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -25,26 +27,25 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.example.myapplication.databinding.ActivityEditBinding;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class EditActivity extends AppCompatActivity {
 
-    private String[] edit_files;
     private ActivityEditBinding binding;
     private RecyclerView recyclerView;
-    private EditItemAdapter adapter;
-    private RecyclerView.LayoutManager layoutManager;
+    private EditBlockAdapter adapter;
     private TextView contentText, themeText;
     private FloatingActionButton next_fab;
     private TextView progress_text;
     private ProgressBar progressBar;
     private LinearLayout progress_layout;
+    private List<String> roughVideos = new ArrayList<>();
     private List<String> fineVideos = new ArrayList<>();
     private List<String> startFrames = new ArrayList<>();
     private List<String> endFrames = new ArrayList<>();
+    private List<Boolean> ifChoose = new ArrayList<>();
     private List<Float> videoScores = new ArrayList<>(); //每个细剪辑视频的平均得分
 
 
@@ -69,30 +70,37 @@ public class EditActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progress_bar_finetune);
         progress_text = findViewById(R.id.progress_text_finetune);
 
-        edit_files = bundle.getStringArray("cut_files");
-        Log.d("num_videos", String.valueOf(edit_files.length));
+        String[] video_strings = bundle.getStringArray("cut_files");
 //        Log.d("edit videos!!", edit_files.toString());
-        List<EditItem> list = new ArrayList<>();
-        for (int j = 0; j < edit_files.length; ++j) {
-            String[] ss =  edit_files[j].split("/");
-            String label = ss[ss.length-1];
+        List<EditBlock> listBlock = new ArrayList<>();
+        for (int i = 0; i < video_strings.length; ++i) {
+            String videoString = video_strings[i];
+            String[] videos = videoString.split("#");
+            String label = "视频" +  i;
 
-//            Log.d("label", "[" + label + "]");
-            list.add(new EditItem(label, edit_files[j]));
-
-
+            List<EditItem> items = new ArrayList<>();
+            for (String video: videos){
+                if (video.length() == 0) continue;
+                items.add(new EditItem(video));
+                roughVideos.add(video);
+                Log.d("EDIT", "add rough " + i + " " + video);
+                ifChoose.add(new Boolean(false));
+            }
+            listBlock.add(new EditBlock(label, items));
         }
-//        list.clear();
+        Log.d("list", listBlock.size() + " ");
+
         recyclerView = findViewById(R.id.edit_recycler);
-        layoutManager = new LinearLayoutManager(this);
-        adapter = new EditItemAdapter(list);
-        adapter.setOnItemClickListener(new EditItemAdapter.OnItemClickListener() {
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new EditBlockAdapter(listBlock, new EditBlockAdapter.OnItemClick() {
             @Override
-            public void onItemCLick(int position) {
-//                Toast.makeText(this,,Toast.LENGTH_SHORT)
+            public void onItemClick(EditItem item, boolean ifChecked) {
+                Log.d("CLICK", String.valueOf(ifChecked) + " " + item.getVideopath());
+                int id = roughVideos.indexOf(item.getVideopath());
+                ifChoose.set(id, ifChecked);
             }
         });
-        recyclerView.setLayoutManager(layoutManager);
+
         recyclerView.setAdapter(adapter);
 
 
@@ -105,17 +113,14 @@ public class EditActivity extends AppCompatActivity {
         next_fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-                List<Integer> selectedIndexes = SelectVideos.getIndexList();
-                List<String> selectedVideos = new ArrayList<>();
-                float[] scores_list = new float[fineVideos.size()];
-                for (int i = 0; i < fineVideos.size(); ++i){
-                    scores_list[i] = videoScores.get(i);
+                List<Integer> selectedIndexes = new ArrayList<>();
+                for (int i = 0; i < ifChoose.size(); ++i){
+                    if (ifChoose.get(i)){
+                        selectedIndexes.add(i);
+                        Log.d("FINETUNE", "select " + i);
+                    }
                 }
-                for (int i: selectedIndexes){
-                    scores_list[i] += 0.3f;
-                }
+
 
                 float[] videoScoresList = new float[videoScores.size()];
                 for (int i = 0; i < videoScores.size(); ++i){
@@ -128,14 +133,12 @@ public class EditActivity extends AppCompatActivity {
                 List<Integer> concatResult = ConcatUtils.concat(videoScoresList,
                         startFrames.toArray(new String[0]), endFrames.toArray(new String[0]));
 
+                List<String> selectedVideos = new ArrayList<>();
                 for (int i: concatResult){
                     System.out.println("Select video " + i);
                     selectedVideos.add(fineVideos.get(i));
                 }
-//                if (selectedIndexes.size() == 0) {
-//                    Toast.makeText(getApplicationContext(), "没有选择的视频", Toast.LENGTH_SHORT).show();
-//                    return;
-//                }
+
                 String finalNoMusicPath = Constants.getRunningDir() + "/final_noBGM.mp4";
                 String finalPath = Constants.getRunningDir() + "/final.mp4";
                 Log.d("edit merge path", finalPath);
@@ -159,11 +162,11 @@ public class EditActivity extends AppCompatActivity {
             }
         });
 
-        Finetune(edit_files);
+        Finetune(roughVideos);
 
     }
 
-    private void Finetune(String[] videos){
+    private void Finetune(List<String> inputs){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -178,14 +181,13 @@ public class EditActivity extends AppCompatActivity {
 
                 String fineDir = Constants.getRunningDir() + "/finetune";
 
-                for (int i = 0; i < videos.length; ++i){
-                    FineResult result = FinetuneUtils.fineTune(videos[i], fineDir, i);
+                for (int i = 0; i < inputs.size(); ++i){
+                    FineResult result = FinetuneUtils.fineTune(inputs.get(i), fineDir, i);
                     fineVideos.add(result.videoPath);
                     startFrames.add(result.startFramePath);
                     endFrames.add(result.endFramePath);
                     videoScores.add(result.score);
                 }
-
 
                 runOnUiThread(new Runnable() {
                     @Override

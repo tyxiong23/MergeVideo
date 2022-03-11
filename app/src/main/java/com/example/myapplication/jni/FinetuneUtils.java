@@ -19,7 +19,7 @@ import java.util.List;
 public class FinetuneUtils {
 
     private static int FineImgH = 400, FineImgW = 400;
-    private static int fps = 10;
+    private static int fps = 5;
 //    private static int music_fpm = 93;
     private static float a_light = 0.4f;
 

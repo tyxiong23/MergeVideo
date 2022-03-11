@@ -1,5 +1,10 @@
 package com.example.myapplication.utils.tools;
 
+import android.content.Context;
+import android.util.Log;
+
+import java.io.File;
+
 /**
  * 程序运行中的一些常数
  */
@@ -29,6 +34,10 @@ public class Constants {
     public static void updateBGM(MusicInfo music){
         MUSICFPM = music.fpm;
         MUSICPATH = music.src;
+    }
+    public static void init(Context ctx){
+        CACHE_DIR = ctx.getCacheDir().getAbsolutePath();
+        SAVE_DIR = ctx.getFilesDir().getAbsolutePath();
     }
 
 

@@ -151,11 +151,12 @@ public class MergeActivity extends AppCompatActivity {
             System.out.println(media_dirs[0].exists());
             String save_path = mediaDir + "/" + short_path;
 
-            System.out.println(getApplicationContext().getExternalMediaDirs().length + "length" + getApplicationContext().getExternalMediaDirs()[0]);
+            System.out.println(getApplicationContext().getExternalMediaDirs().length + " length " + getApplicationContext().getExternalMediaDirs()[0]);
 
             boolean result = CopyFile.fileChannelCopy(videoPath, save_path);
             System.out.println("save to media " + result);
 
+            // 扫描到相册
             if (result) {
                 File saveVideo = new File(save_path);
                 FileNameMap fileNameMap = URLConnection.getFileNameMap();

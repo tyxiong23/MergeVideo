@@ -26,11 +26,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.lang.String;
 
@@ -44,7 +42,7 @@ import com.example.myapplication.utils.album.adapter.GridImageAdapter;
 import com.example.myapplication.utils.tools.ClearCache;
 import com.example.myapplication.utils.tools.Constants;
 import com.example.myapplication.utils.tools.FFmpegUtils;
-import com.example.myapplication.utils.edititem.SelectVideos;
+
 import com.example.myapplication.utils.tools.Theme;
 import com.example.myapplication.utils.tools.VideoInfo;
 import com.luck.picture.lib.PictureSelector;
@@ -96,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Constants.init(getApplicationContext());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -206,7 +205,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        SelectVideos.clear();
     }
 
     private final GridImageAdapter.onAddPicClickListener onAddPicClickListener = new GridImageAdapter.onAddPicClickListener() {
@@ -501,6 +499,7 @@ public class MainActivity extends AppCompatActivity {
                             String tempString = null;
                             int cut_num = 0;
                             // 一次读入一行，直到读入null为文件结束
+                            List<String> tmp_results = new ArrayList<>();
                             while ((tempString = reader.readLine()) != null) {
                                 // 显示行号
                                 System.out.println("start-end [" + tempString + "]");
@@ -511,19 +510,31 @@ public class MainActivity extends AppCompatActivity {
                                 }
                                 String outPath = Constants.getRunningDir() + String.format("/rough/%d-%d.mp4", i, cut_num);
                                 FFmpegUtils.cutVideo(srcVideo, outPath, start, end, roughFPS);
-                                roughCut_results.add(outPath);
+                                tmp_results.add(outPath);
                                 cut_num++;
                             }
                             reader.close();
+
+                            if (tmp_results.size() > 0){
+                                // 把每个输入视频的粗剪输出使用#进行连接
+                                String tmp_string = tmp_results.get(0);
+                                for (int j = 1; j < tmp_results.size(); ++j) {
+                                    tmp_string += "#" + tmp_results.get(j);
+                                }
+                                Log.d("Rough Result String", tmp_string);
+                                roughCut_results.add(tmp_string);
+                            } else {
+                                roughCut_results.add("");
+                            }
                         }
 
                     } catch (Exception e){
                         e.printStackTrace();
                     }
 
+
                 }
 
-                //                String[] results = resampleResults.toArray(new String[0]);
                 String[] results = roughCut_results.toArray(new String[0]);
 
 
